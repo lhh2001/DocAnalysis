@@ -43,20 +43,10 @@ void DocAnalysis::run()
     buildTrieTreeFromFile(dictFile, dictTrieTree);
     std::cout << "已加载分词词典" << std::endl << std::endl;
 
-    analyzeFile(inFileAName);
-    std::cout << std::endl;
-    analyzeFile(inFileBName);
-    std::cout << std::endl << "相同字符有 " << sameCharNum << " 个" << std::endl;
-}
-
-void DocAnalysis::analyzeFile(std::string& fileName)
-{
-    std::cout << "分析 " << fileName << DOC_EXTENSION << " 中..." << std::endl;
-
     if (!USE_TXT_FILE_DIRECTLY)
     {
-        std::cout << "转换doc到txt中..." << std::endl;
-        if (convertDocToTxt(fileName))
+        std::cout << "转换doc到txt中(本过程需5-7秒钟)..." << std::endl;
+        if (convertDocToTxt(inFileAName, inFileBName))
         {
             std::cout << "转换doc到txt成功!" << std::endl;
         }
@@ -65,7 +55,26 @@ void DocAnalysis::analyzeFile(std::string& fileName)
             std::cout << "转换doc到txt异常!" << std::endl;
             return;
         }
+        std::cout << std::endl;
     }
+
+    std::string tmp = inFileAName;
+
+    analyzeFile(inFileAName);
+    system(("type " + tmp + '\\' + tmp + "_result.txt").c_str());
+    std::cout << std::endl;
+    analyzeFile(inFileBName);
+    tmp = inFileBName;
+    system(("type " + tmp + '\\' + tmp + "_result.txt").c_str());
+    std::cout << std::endl;
+
+    std::cout << std::endl << "相同字符有 " << sameCharNum << " 个" << std::endl;
+    std::cout << "不同字符有 " << totCharNum - 2 * sameCharNum << " 个" << std::endl;
+}
+
+void DocAnalysis::analyzeFile(std::string& fileName)
+{
+    std::cout << "分析 " << fileName << DOC_EXTENSION << " 中..." << std::endl;
 
     WInFile* inFile = new WInFile((fileName + '/' + fileName + ".txt").c_str());
     WOutFile* outFile = new WOutFile((fileName + '/' + fileName + "_result.txt").c_str());
@@ -79,15 +88,16 @@ void DocAnalysis::analyzeFile(std::string& fileName)
     getWordFreq(myDoc);
 
     printResult(outFile);
-    std::cout << "已输出结果到" << fileName + "_result.txt" << std::endl;
+    std::cout << "已输出结果到" << fileName + '\\' + fileName + "_result.txt" << std::endl;
 
     delete inFile;
     delete outFile;
 }
 
-bool DocAnalysis::convertDocToTxt(std::string& fileName)
+bool DocAnalysis::convertDocToTxt(std::string& fileAName, std::string& fileBName) //返回true表示成功
 {
-    return system(("doc2txt " + fileName + '\\' + fileName + DOC_EXTENSION).c_str());
+    std::string tmp = fileAName + '\\' + fileAName + DOC_EXTENSION + ' ' + fileBName + '\\' + fileBName + DOC_EXTENSION;
+    return !system(("powershell -ExecutionPolicy Bypass -F tools\\doc2txt.ps1 " + tmp).c_str());
 }
 
 void DocAnalysis::buildTrieTreeFromFile(WInFile* trieTreeWInFile, TrieTree<wchar_t>* myTrieTree)
@@ -101,21 +111,31 @@ void DocAnalysis::buildTrieTreeFromFile(WInFile* trieTreeWInFile, TrieTree<wchar
     } while (flag);
 }
 
+bool DocAnalysis::isWCharValid(wchar_t wc)
+{
+    if (!(wc & 0x00ff)) //不是汉字
+    {
+        char c = wc >> 8;
+        //wc是换行, 空格等无效字符
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 void DocAnalysis::getCharFreq(std::wstring& myDoc) //统计相同字符
 {
     if (!charFreq.size()) //size为0表示正在分析第一个文件
     {
         for (auto wc : myDoc)
         {
-            if (!(wc & 0x00ff)) //不是汉字
+            if (!isWCharValid(wc)) //字符不合法，跳过
             {
-                char c = wc >> 8;
-                //wc是换行, 空格等无效字符
-                if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')))
-                {
-                    continue;
-                }
+                continue;
             }
+            totCharNum++;
             charFreq[wc]++;
         }
     }
@@ -123,6 +143,11 @@ void DocAnalysis::getCharFreq(std::wstring& myDoc) //统计相同字符
     {
         for (auto wc : myDoc)
         {
+            if (!isWCharValid(wc))
+            {
+                continue;
+            }
+            totCharNum++;
             auto iter = charFreq.find(wc);
             if (iter != charFreq.end() && iter->second)
             {
@@ -154,7 +179,7 @@ void DocAnalysis::printResult(WOutFile* outFile)
             if (q.top().second.size() > 1 && wordNum < limit)
             {
                 wordNum++;
-                (*outFile) << q.top().second << " " << q.top().first << "次\n";
+                (*outFile) << q.top().second << ' ' << q.top().first << "次\n";
             }
             else if (q.top().second.size() == 1 && charNum < limit)
             {
@@ -168,7 +193,7 @@ void DocAnalysis::printResult(WOutFile* outFile)
     (*outFile) << "\n前十高频字: \n";
     while (!cq.empty())
     {
-        (*outFile) << cq.front().second << " " << cq.front().first << "次\n";
+        (*outFile) << cq.front().second << ' ' << cq.front().first << "次\n";
         cq.pop();
     }
 }

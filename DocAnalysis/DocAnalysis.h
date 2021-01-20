@@ -16,6 +16,7 @@ private:
 	std::string inFileBName;
 	std::map<wchar_t, int> charFreq; //字符出现次数
 	int sameCharNum = 0; //相同字符个数
+	int totCharNum = 0; //总字符个数
 	WInFile* dictFile = nullptr;
 	WInFile* stopWordsFile = nullptr;
 	TrieTree<wchar_t>* dictTrieTree = nullptr;
@@ -23,7 +24,8 @@ private:
 	TrieTree<wchar_t>::qtype q;
 	
 	void buildTrieTreeFromFile(WInFile* trieTreeWInFile, TrieTree<wchar_t>* myTrieTree);
-	bool convertDocToTxt(std::string& fileName);
+	bool convertDocToTxt(std::string& fileAName, std::string& fileBName); //返回true表示成功
+	bool isWCharValid(wchar_t wc); //判断字符是否为有效字符(英文、汉字或数字)
 	void getCharFreq(std::wstring& myDoc);
 	void getWordFreq(std::wstring& myDoc);
 	void printResult(WOutFile* outFile);

@@ -6,10 +6,10 @@
 
 int main()
 {
-    #ifdef _DEBUG
+    #ifdef _DEBUG //Debug模式下的两个文件名
     const char* inFileAName = "1";
     const char* inFileBName = "2";
-    #else
+    #else //Release模式下的两个文件名
     const char* inFileAName = "资本论";
     const char* inFileBName = "共产党宣言";
 

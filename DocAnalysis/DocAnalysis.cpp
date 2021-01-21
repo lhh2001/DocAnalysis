@@ -88,7 +88,7 @@ void DocAnalysis::analyzeFile(std::string& fileName)
     getWordFreq(myDoc);
 
     printResult(outFile);
-    std::cout << "已输出结果到" << fileName + '\\' + fileName + "_result.txt" << std::endl;
+    std::cout << "已输出结果到 " << fileName + '\\' + fileName + "_result.txt" << std::endl;
 
     delete inFile;
     delete outFile;
